@@ -4,20 +4,33 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Virtual Carey–Foster Bridge • Pro</title>
+  <meta name="description" content="Interactive single-file simulation of the Carey–Foster Bridge with dark mode, theory, smooth galvanometer, readings log, and charts." />
   <style>
     :root{
-      --bg: #f8fafc; --ink: #0f172a; --muted:#475569; --panel:#ffffff;
-      --ring:#94a3b8; --accent:#22c55e; --accent-ink:#166534;
-      --border:#e2e8f0; --warn:#ef4444;
+      --bg: #f8fafc; /* slate-50 */
+      --ink: #0f172a; /* slate-900 */
+      --muted:#475569; /* slate-600 */
+      --panel:#ffffff;
+      --ring:#94a3b8; /* slate-400 */
+      --accent:#22c55e; /* green-500 */
+      --accent-ink:#166534; /* green-700 */
+      --border:#e2e8f0; /* slate-200 */
       --shadow: 0 6px 18px rgba(2,6,23,.08);
     }
     [data-theme="dark"]{
-      --bg:#0b1220; --ink:#e6edf7; --muted:#93a4bf; --panel:#0f172a;
-      --ring:#334155; --accent:#22c55e; --accent-ink:#86efac;
-      --border:#1e293b; --shadow: 0 10px 30px rgba(0,0,0,.35);
+      --bg:#0b1220;
+      --ink:#e6edf7;
+      --muted:#93a4bf;
+      --panel:#0f172a;
+      --ring:#334155;
+      --accent:#22c55e;
+      --accent-ink:#86efac;
+      --border:#1e293b;
+      --shadow: 0 10px 30px rgba(0,0,0,.35);
     }
     *{ box-sizing: border-box; }
-    body{ margin:0; font-family: system-ui, sans-serif;
+    html,body{ height:100%; }
+    body{ margin:0; font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, Helvetica, Arial;
       color:var(--ink); background:var(--bg); }
     h1{ font-size:1.6rem; margin:.4rem 0 .2rem; }
     h2{ font-size:1.1rem; margin:0 0 .5rem; }
@@ -29,21 +42,17 @@
     @media (min-width: 950px){ .grid-3{ grid-template-columns:repeat(3,minmax(0,1fr)); } }
     .row{ display:grid; grid-template-columns:1fr auto; gap:8px; align-items:center; margin:8px 0; }
     .inline{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
-    input[type="number"]{
+    input[type="number"], input[type="text"]{
       width: 150px; padding:9px 10px; border-radius:10px; border:1px solid var(--border); background: transparent;
       color:var(--ink);
     }
     input[type="range"]{ width:100%; }
-    .btn{ background:var(--ink); color:#fff; padding:10px 14px; border:0; border-radius:14px; cursor:pointer; box-shadow:var(--shadow); }
+    .btn{
+      background:var(--ink); color:#fff; padding:10px 14px; border:0; border-radius:14px; cursor:pointer; box-shadow:var(--shadow);
+    }
     .btn:disabled{ opacity:.6; cursor:not-allowed; }
     .btn.alt{ background:var(--accent); color:#052e16; }
     .btn.ghost{ background:transparent; color:var(--ink); border:1px solid var(--border); }
-
-    /* Dark mode button fixes */
-    [data-theme="dark"] .btn{ background:#1e293b; color:#e2e8f0; }
-    [data-theme="dark"] .btn.alt{ background:var(--accent); color:#052e16; }
-    [data-theme="dark"] .btn.ghost{ background:transparent; color:#e2e8f0; border:1px solid var(--ring); }
-
     .kv{ background:rgba(148,163,184,.08); border:1px solid var(--border); border-radius:12px; padding:10px; }
     .kv .k{ font-size:.72rem; text-transform:uppercase; letter-spacing:.06em; color:var(--muted); }
     .kv .v{ font-variant-numeric: tabular-nums; font-weight:600; }
@@ -58,6 +67,8 @@
     .rightcol{ display:grid; grid-template-columns:1fr 360px; gap:16px; align-items:start; }
     @media (max-width: 1050px){ .rightcol{ grid-template-columns: 1fr; } }
     .svgbox{ width:100%; height:auto; }
+    details summary{ cursor:pointer; list-style:none; }
+    details summary::-webkit-details-marker{ display:none; }
     details{ border:1px dashed var(--border); border-radius:12px; padding:10px 12px; }
     .badge{ border:1px solid var(--border); padding:2px 8px; border-radius:999px; font-size:.75rem; }
     .pill{ background:rgba(34,197,94,.15); color:var(--accent-ink); padding:4px 8px; border-radius:999px; font-size:.8rem; }
@@ -71,213 +82,463 @@
   <div class="wrap" id="app">
     <header>
       <div>
-        <h1>Virtual Carey–Foster Bridge</h1>
-        <p class="muted">Interactive simulation of resistance measurement</p>
+        <h1>Virtual Carey–Foster Bridge <span class="pill">Pro</span></h1>
+        <div class="muted">Null-balance method to measure small resistance differences • Single-file HTML</div>
       </div>
-      <label class="switch">
-        <input type="checkbox" id="themeToggle"><span class="slider"></span>
-      </label>
+      <div class="inline">
+        <span class="muted">Dark mode</span>
+        <label class="switch"><input id="themeToggle" type="checkbox" aria-label="Toggle dark mode"/><span class="slider"></span></label>
+        <button id="resetBtn" class="btn ghost" title="Reset to defaults">Reset</button>
+        <button id="exportBtn" class="btn">Export CSV</button>
+      </div>
     </header>
 
-    <div class="grid-3">
-      <div class="panel">
+    <section class="grid-3">
+      <div class="panel" id="panel-arms">
         <h2>Bridge Arms</h2>
-        <div class="row"><label>X (Ω)</label><input id="resX" type="number" value="10"></div>
-        <div class="row"><label>Y (Ω)</label><input id="resY" type="number" value="10.2"></div>
-        <div class="row"><label>P (Ω)</label><input id="resP" type="number" value="100"></div>
-        <div class="row"><label>Q (Ω)</label><input id="resQ" type="number" value="100"></div>
-      </div>
-
-      <div class="panel">
-        <h2>Wire &amp; Environment</h2>
-        <div class="row"><label>Length (cm)</label><input id="wireLen" type="number" value="100"></div>
-        <div class="row"><label>Res/ cm (Ω)</label><input id="wireRes" type="number" value="0.01"></div>
-        <div class="row"><label>Temperature (°C)</label><input id="temp" type="number" value="25"></div>
-      </div>
-
-      <div class="panel">
-        <h2>Controls</h2>
-        <div class="inline">
-          <button class="btn alt" onclick="resetExp()">Reset</button>
-          <button class="btn ghost" onclick="scanAndPlot()">Scan</button>
-          <button class="btn" onclick="logReading()">Log Reading</button>
-          <button class="btn ghost" onclick="exportCSV()">Export CSV</button>
+        <div class="row"><span>P (Ω)</span><input id="P" type="number" step="0.1" min="0.0001" value="100" /></div>
+        <div class="row"><span>Q (Ω)</span><input id="Q" type="number" step="0.1" min="0.0001" value="100" /></div>
+        <hr/>
+        <div class="row">
+          <span>X (Ω)</span>
+          <div class="inline">
+            <input id="X" type="number" step="0.001" min="0" value="5.000" />
+            <span class="muted">Copper busbar</span>
+            <label class="switch"><input id="CuL" type="checkbox" aria-label="Short left gap with copper busbar"/><span class="slider"></span></label>
+          </div>
+        </div>
+        <div class="row">
+          <span>Y (Ω)</span>
+          <div class="inline">
+            <input id="Y" type="number" step="0.001" min="0" value="5.200" />
+            <span class="muted">Copper busbar</span>
+            <label class="switch"><input id="CuR" type="checkbox" aria-label="Short right gap with copper busbar"/><span class="slider"></span></label>
+          </div>
+        </div>
+        <div class="row">
+          <span>Swap X ↔ Y</span>
+          <label class="switch"><input id="swapXY" type="checkbox" aria-label="Swap gap resistances"/><span class="slider"></span></label>
         </div>
       </div>
-    </div>
 
-    <div class="rightcol">
-      <div class="panel">
-        <svg id="bridgeSVG" class="svgbox" viewBox="0 0 600 200">
-          <line x1="50" y1="100" x2="550" y2="100" stroke="black" stroke-width="2"/>
-          <circle id="jockey" cx="300" cy="100" r="10" fill="#22c55e" cursor="pointer"/>
+      <div class="panel" id="panel-wire">
+        <h2>Wire & Environment</h2>
+        <div class="row"><span>Length L (cm)</span><input id="L" type="number" step="1" min="10" value="100" /></div>
+        <div class="row"><span>σ (Ω/cm)</span><input id="sigma" type="number" step="0.0001" min="0.000001" value="0.0200" /></div>
+        <div class="row">
+          <span>Galvanometer noise</span>
+          <div style="display:grid; grid-template-columns:1fr auto; gap:8px; align-items:center;">
+            <input id="noise" type="range" min="0" max="5" step="1" value="0" />
+            <div id="noiseLabel" class="muted">0×</div>
+          </div>
+        </div>
+        <div class="muted" style="font-size:.85rem; margin-top:6px;">
+          Balance when: <span class="badge">P/(σ·l + R<sub>left</sub>) = Q/(σ·(L − l) + R<sub>right</sub>)</span>
+        </div>
+      </div>
+
+      <div class="panel" id="panel-balance">
+        <h2>Balance & Readings</h2>
+        <div class="inline" style="gap:8px;">
+          <button id="autoBtn" class="btn alt">Auto-balance at l</button>
+          <button id="l1Btn" class="btn">Measure l₁ (no swap)</button>
+          <button id="l2Btn" class="btn">Measure l₂ (swap)</button>
+          <button id="logBtn" class="btn ghost">Log Reading</button>
+        </div>
+        <div style="display:grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap:10px; margin-top:10px;">
+          <div class="kv"><div class="k">Current l (cm)</div><div id="curL" class="v">—</div></div>
+          <div class="kv"><div class="k">l₁ (cm)</div><div id="L1" class="v">—</div></div>
+          <div class="kv"><div class="k">l₂ (cm)</div><div id="L2" class="v">—</div></div>
+          <div class="kv"><div class="k">X − Y (Ω)</div><div id="DeltaR" class="v">—</div></div>
+          <div class="kv"><div class="k">Rₗ (Ω)</div><div id="Rleft" class="v">—</div></div>
+          <div class="kv"><div class="k">Rᵣ (Ω)</div><div id="Rright" class="v">—</div></div>
+        </div>
+        <div id="errorBox" class="muted" style="margin-top:8px;"></div>
+      </div>
+    </section>
+
+    <section class="rightcol">
+      <div class="panel" id="panel-wireview">
+        <div class="inline" style="justify-content:space-between;">
+          <h2>Bridge Wire & Jockey</h2>
+          <div class="inline">
+            <button id="scanBtn" class="btn ghost" title="Sweep l and plot deflection">Scan Plot</button>
+            <button id="snapBtn" class="btn ghost" title="Save PNG of plot">Snapshot</button>
+          </div>
+        </div>
+        <svg id="wireSVG" class="svgbox" viewBox="0 0 940 180" aria-label="Wire visualization">
+          <line id="wireLine" x1="40" y1="80" x2="900" y2="80" stroke="currentColor" stroke-width="6" stroke-linecap="round" />
+          <g id="ticks"></g>
+          <g id="jockey" class="draggable" cursor="pointer" tabindex="0" role="slider" aria-valuemin="0" aria-valuemax="100" aria-valuenow="50" aria-label="Jockey position">
+            <circle r="10" fill="var(--accent)" cx="470" cy="80"></circle>
+            <rect x="-3" y="45" width="6" height="25" rx="3" fill="var(--accent)"></rect>
+            <text id="jockeyLabel" x="470" y="42" text-anchor="middle" font-size="12" fill="var(--accent-ink)">l = 50.00 cm</text>
+          </g>
+          <text id="segLeft" x="40" y="48" text-anchor="start" font-size="12" fill="var(--muted)">Left segment</text>
+          <text id="segRight" x="900" y="48" text-anchor="end" font-size="12" fill="var(--muted)">Right segment</text>
+          <text id="deflLabel" x="470" y="130" text-anchor="middle" font-size="12" fill="var(--muted)">Deflection: —</text>
         </svg>
-        <div style="text-align:center; margin-top:10px;">
-          <canvas id="galvo" width="200" height="200"></canvas>
+        <div style="margin-top:8px;">
+          <canvas id="plot" width="940" height="260" aria-label="Deflection vs l plot"></canvas>
         </div>
       </div>
 
-      <div class="panel">
-        <h2>Readings</h2>
-        <table class="log" id="logTable">
-          <thead><tr><th>#</th><th>l₁ (cm)</th><th>l₂ (cm)</th><th>ΔR (Ω)</th></tr></thead>
-          <tbody></tbody>
-        </table>
+      <div class="panel" id="panel-galvo">
+        <h2>Galvanometer</h2>
+        <svg id="galvo" class="svgbox" viewBox="0 0 340 180" aria-label="Galvanometer">
+          <path id="galvoArc" d="" fill="none" stroke="currentColor" stroke-width="3"></path>
+          <g id="galvoTicks"></g>
+          <line id="needle" x1="170" y1="126" x2="170" y2="66" stroke="var(--accent)" stroke-width="4" stroke-linecap="round"></line>
+          <circle cx="170" cy="126" r="5" fill="currentColor"></circle>
+          <text id="galvoText" x="170" y="150" text-anchor="middle" font-size="12" fill="var(--muted)">Null</text>
+        </svg>
+        <div class="muted" style="margin-top:8px">Sign indicates which side is heavier (ratio mismatch). At null, the pointer stays centered.</div>
       </div>
-    </div>
+    </section>
 
-    <div class="panel">
-      <h2>Deflection vs Position</h2>
-      <canvas id="plot" width="600" height="250"></canvas>
-    </div>
+    <section class="panel">
+      <details open>
+        <summary class="inline"><strong>Theory & Procedure</strong> <span class="muted"> (click to collapse)</span></summary>
+        <ol>
+          <li><strong>Balance condition:</strong> P/(σl + R<sub>L</sub>) = Q/(σ(L − l) + R<sub>R</sub>).</li>
+          <li>Measure balance length l₁ with X at left gap and Y at right gap.</li>
+          <li>Swap X and Y, measure l₂.</li>
+          <li><strong>X − Y = σ(l₂ − l₁)</strong>. Use the controls to auto-find balance and record readings.</li>
+          <li>Use <em>Scan Plot</em> to see deflection vs l and where the null occurs.</li>
+          <li>Short either gap with the copper busbar to study lead/contact effects.</li>
+        </ol>
+        <p class="muted">Tip: Use <em>Log Reading</em> to save trials; export as CSV for your lab record.</p>
+      </details>
+    </section>
+
+    <section class="panel">
+      <h2>Readings Log</h2>
+      <table class="log" id="logTable" aria-label="Readings log table">
+        <thead>
+          <tr>
+            <th>Trial</th><th>P (Ω)</th><th>Q (Ω)</th><th>X (Ω)</th><th>Y (Ω)</th>
+            <th>L (cm)</th><th>σ (Ω/cm)</th><th>l (cm)</th><th>l₁</th><th>l₂</th><th>X − Y (Ω)</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </section>
+
+    <footer>© <span id="year"></span> Virtual Carey–Foster Bridge • Pro</footer>
   </div>
 
   <script>
+    // ---------- Utilities ----------
+    const clamp = (v,a,b)=>Math.min(Math.max(v,a),b);
+    const fmt = (v,d=4)=> Number.isFinite(v) ? v.toFixed(d) : '—';
+    const lerp = (a,b,t)=> a + (b-a)*t;
+    function bisection(fn, lo, hi, tol = 1e-7, maxIter = 300){
+      let fLo = fn(lo), fHi = fn(hi);
+      if (!isFinite(fLo) || !isFinite(fHi)) return null;
+      if (Math.abs(fLo) < tol) return lo;
+      if (Math.abs(fHi) < tol) return hi;
+      if (fLo * fHi > 0) return null;
+      let a=lo, b=hi, fA=fLo;
+      for (let i=0;i<maxIter;i++){
+        const m=0.5*(a+b), fM=fn(m);
+        if (!isFinite(fM)) return null;
+        if (Math.abs(fM) < tol || Math.abs(b-a) < tol) return m;
+        if (fA * fM <= 0){ b=m; } else { a=m; fA=fM; }
+      }
+      return 0.5*(a+b);
+    }
+
+    // ---------- State ----------
     const state = {
-      X:10, Y:10.2, P:100, Q:100, L:100, rw:0.01,
-      pos:0.5, l1:null, l2:null
+      P:100, Q:100, X:5.000, Y:5.200,
+      L:100, sigma:0.0200, pos:50,
+      swap:false, cuL:false, cuR:false,
+      noise:0, l1:null, l2:null,
+      theme: localStorage.getItem('cf-theme') || 'light',
+      log: [],
     };
 
-    const resX=document.getElementById("resX"),
-          resY=document.getElementById("resY"),
-          resP=document.getElementById("resP"),
-          resQ=document.getElementById("resQ"),
-          wireLen=document.getElementById("wireLen"),
-          wireRes=document.getElementById("wireRes");
+    // ---------- DOM ----------
+    const el = id => document.getElementById(id);
+    const inputs = {
+      P:el('P'), Q:el('Q'), X:el('X'), Y:el('Y'), L:el('L'), sigma:el('sigma'),
+      noise:el('noise'), cuL:el('CuL'), cuR:el('CuR'), swap:el('swapXY')
+    };
+    const labels = {
+      noise:el('noiseLabel'), curL:el('curL'), L1:el('L1'), L2:el('L2'), DeltaR:el('DeltaR'),
+      Rleft:el('Rleft'), Rright:el('Rright'), defl:el('deflLabel'),
+    };
+    const wireSVG = el('wireSVG');
+    const ticksG = el('ticks');
+    const jockey = el('jockey');
+    const jockeyLabel = el('jockeyLabel');
+    const galvo = { svg:el('galvo'), arc:el('galvoArc'), ticks:el('galvoTicks'), needle:el('needle'), text:el('galvoText') };
+    const plot = el('plot');
+    const ctx = plot.getContext('2d');
+    const themeToggle = el('themeToggle');
 
-    [resX,resY,resP,resQ,wireLen,wireRes].forEach(inp=>{
-      inp.addEventListener("input",()=>{
-        state.X=parseFloat(resX.value);
-        state.Y=parseFloat(resY.value);
-        state.P=parseFloat(resP.value);
-        state.Q=parseFloat(resQ.value);
-        state.L=parseFloat(wireLen.value);
-        state.rw=parseFloat(wireRes.value);
-      });
-    });
-
-    const jockey=document.getElementById("jockey"),
-          svg=document.getElementById("bridgeSVG");
-
-    let dragging=false;
-    svg.addEventListener("mousedown",e=>{
-      if(e.target===jockey) dragging=true;
-    });
-    svg.addEventListener("mouseup",()=>dragging=false);
-    svg.addEventListener("mousemove",e=>{
-      if(dragging){
-        let pt=svg.createSVGPoint();
-        pt.x=e.clientX; pt.y=e.clientY;
-        let cursorpt=pt.matrixTransform(svg.getScreenCTM().inverse());
-        let x=Math.max(50,Math.min(550,cursorpt.x));
-        jockey.setAttribute("cx",x);
-        state.pos=(x-50)/500;
-        drawGalvo();
+    // ---------- Geometry helpers ----------
+    const x0=40, x1=900, yWire=80;
+    const toXY_g = (cx,cy,R,deg)=>{ const rad=(deg-90)*Math.PI/180; return {x:cx+R*Math.cos(rad), y:cy+R*Math.sin(rad)}; };
+    function xFromL(l){ return x0 + (x1-x0) * (l/state.L); }
+    function lFromX(x){ return clamp(state.L * (x - x0)/(x1 - x0), 0, state.L); }
+    function layoutTicks(){
+      ticksG.innerHTML='';
+      for (let i=0;i<=10;i++){
+        const x = x0 + i*(x1-x0)/10;
+        const line = document.createElementNS('http://www.w3.org/2000/svg','line');
+        line.setAttribute('x1',x); line.setAttribute('y1',yWire-10); line.setAttribute('x2',x); line.setAttribute('y2',yWire+10);
+        line.setAttribute('stroke','var(--ring)'); line.setAttribute('stroke-width', i%5===0?2:1);
+        const t = document.createElementNS('http://www.w3.org/2000/svg','text');
+        t.setAttribute('x',x); t.setAttribute('y',yWire+28); t.setAttribute('text-anchor','middle'); t.setAttribute('font-size','11'); t.setAttribute('fill','var(--muted)');
+        t.textContent = Math.round(state.L * i / 10);
+        ticksG.appendChild(line); ticksG.appendChild(t);
       }
-    });
+    }
 
-    const galvo=document.getElementById("galvo"),
-          gctx=galvo.getContext("2d");
+    // ---------- Physics ----------
+    function currentMismatch(l){
+      const r = state.sigma;
+      const RleftGap = state.cuL ? 1e-6 : (state.swap ? state.Y : state.X);
+      const RrightGap = state.cuR ? 1e-6 : (state.swap ? state.X : state.Y);
+      const left = r*l + RleftGap;
+      const right = r*(state.L - l) + RrightGap;
+      return state.P/left - state.Q/right; // zero at balance
+    }
     function deflectionAt(l){
-      let R1=state.P, R2=state.Q;
-      let X=state.X, Y=state.Y;
-      let rw=state.rw;
-      let lres=rw*l, rres=rw*(state.L-l);
-      let vleft=(X+lres)/(X+Y+state.L*rw);
-      let vright=(R1)/(R1+R2);
-      let diff=vleft-vright;
-      return {mag:Math.abs(diff)*2,sign:Math.sign(diff)};
+      const val = currentMismatch(l);
+      const sign = val===0?0:(val>0?1:-1);
+      let mag = Math.min(1, Math.log10(1 + Math.abs(val)));
+      if (state.noise) mag = clamp(mag + (Math.random()-0.5)*0.05*state.noise, 0, 1);
+      return { sign, mag, raw: val };
     }
-    function drawGalvo(){
-      gctx.clearRect(0,0,galvo.width,galvo.height);
-      gctx.beginPath();
-      gctx.arc(100,100,90,0,2*Math.PI);
-      gctx.strokeStyle="#94a3b8";
-      gctx.stroke();
-      let d=deflectionAt(state.pos*state.L);
-      let angle=d.sign*d.mag*Math.PI/3;
-      gctx.beginPath();
-      gctx.moveTo(100,100);
-      gctx.lineTo(100+70*Math.sin(angle),100-70*Math.cos(angle));
-      gctx.strokeStyle="#22c55e"; gctx.lineWidth=3; gctx.stroke();
+    function autoBalance(){
+      const root = bisection(currentMismatch, 0, state.L, 1e-8, 400);
+      if (root==null) return null;
+      state.pos = root; renderWire(); renderPanels(); renderGalvo();
+      return root;
     }
-    drawGalvo();
 
-    const plot=document.getElementById("plot"),
-          ctx=plot.getContext("2d");
-    function clearPlot(){
-      ctx.clearRect(0,0,plot.width,plot.height);
-      ctx.strokeStyle="#94a3b8";
-      ctx.strokeRect(50,30,plot.width-100,plot.height-60);
+    // ---------- Renderers ----------
+    function renderPanels(){
+      const RleftGap = state.cuL ? 1e-6 : (state.swap ? state.Y : state.X);
+      const RrightGap = state.cuR ? 1e-6 : (state.swap ? state.X : state.Y);
+      labels.curL.textContent = fmt(state.pos, 4);
+      labels.Rleft.textContent = fmt(RleftGap, 4);
+      labels.Rright.textContent = fmt(RrightGap, 4);
+      let delta='—';
+      if (state.l1!=null && state.l2!=null){ delta = fmt(state.sigma * (state.l2 - state.l1), 6); }
+      labels.DeltaR.textContent = delta;
+      inputs.X.disabled = state.cuL;
+      inputs.Y.disabled = state.cuR;
+      labels.noise.textContent = `${inputs.noise.value}×`;
+      // Error box
+      const trueDelta = state.X - state.Y;
+      if (state.l1!=null && state.l2!=null){
+        const expDelta = state.sigma * (state.l2 - state.l1);
+        const errPct = (trueDelta===0) ? (expDelta===0?0:Infinity) : Math.abs((expDelta - trueDelta)/trueDelta)*100;
+        el('errorBox').innerHTML = `<strong>Experimental ΔR:</strong> ${fmt(expDelta,6)} Ω • <strong>True ΔR:</strong> ${fmt(trueDelta,6)} Ω • <strong>Error:</strong> ${Number.isFinite(errPct)?fmt(errPct,3)+'%':'—'}`;
+      } else {
+        el('errorBox').textContent = '';
+      }
     }
-    function lerp(a,b,t){ return a+(b-a)*t; }
+    function renderWire(){
+      const px = xFromL(state.pos);
+      jockey.setAttribute('transform', `translate(${px},0)`);
+      jockey.setAttribute('aria-valuenow', fmt(state.pos,2));
+      jockeyLabel.setAttribute('x', px);
+      jockeyLabel.textContent = `l = ${fmt(state.pos,2)} cm`;
+      labels.defl.textContent = (()=>{
+        const d = deflectionAt(state.pos);
+        const dir = d.sign===0? 'Null' : (d.sign>0? '→ Right' : '← Left');
+        return `Deflection: ${dir} (|${fmt(d.mag,3)}|)`;
+      })();
+    }
+    function renderGalvo(){
+      const w=340, h=180, cx=170, cy=126, R=60;
+      const a1=-55, a2=55;
+      const p1 = toXY_g(cx,cy,R,a1), p2=toXY_g(cx,cy,R,a2);
+      galvo.arc.setAttribute('d', `M ${p1.x} ${p1.y} A ${R} ${R} 0 1 1 ${p2.x} ${p2.y}`);
+      galvo.ticks.innerHTML='';
+      for (let t=-50;t<=50;t+=10){
+        const A = toXY_g(cx,cy,R,t), B = toXY_g(cx,cy,R-8,t);
+        const line = document.createElementNS('http://www.w3.org/2000/svg','line');
+        line.setAttribute('x1',A.x); line.setAttribute('y1',A.y);
+        line.setAttribute('x2',B.x); line.setAttribute('y2',B.y);
+        line.setAttribute('stroke','var(--ring)'); line.setAttribute('stroke-width', (t%20===0)?2:1);
+        galvo.ticks.appendChild(line);
+      }
+      // Smooth animate needle
+      const d = deflectionAt(state.pos);
+      const target = (d.sign===0?0:(d.sign>0?1:-1)) * d.mag * 50;
+      renderGalvo._angle = renderGalvo._angle ?? 0;
+      function step(){
+        renderGalvo._angle = renderGalvo._angle + (target - renderGalvo._angle)*0.15;
+        const tip = toXY_g(cx,cy,R-12, renderGalvo._angle);
+        galvo.needle.setAttribute('x1', cx); galvo.needle.setAttribute('y1', cy);
+        galvo.needle.setAttribute('x2', tip.x); galvo.needle.setAttribute('y2', tip.y);
+        galvo.text.textContent = d.raw>0? 'Right heavy' : d.raw<0? 'Left heavy' : 'Null';
+        if (Math.abs(target - renderGalvo._angle) > 0.1) requestAnimationFrame(step);
+      }
+      requestAnimationFrame(step);
+    }
+
+    // ---------- Plotting ----------
+    function clearPlot(){
+      const w = plot.width, h=plot.height;
+      ctx.clearRect(0,0,w,h);
+      // axes
+      ctx.save();
+      ctx.translate(40,h-30);
+      ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(w-60,0); ctx.lineTo(w-60,-h+60); ctx.strokeStyle=getComputedStyle(document.documentElement).getPropertyValue('--muted'); ctx.lineWidth=1; ctx.stroke();
+      ctx.fillStyle=getComputedStyle(document.documentElement).getPropertyValue('--muted');
+      ctx.fillText('l (cm)', (w-60)/2, 22);
+      ctx.rotate(-Math.PI/2); ctx.fillText('Deflection (±)', -(h-60)/2, -26); ctx.restore();
+    }
     function scanAndPlot(){
       clearPlot();
-      const w=plot.width,h=plot.height;
-      const left=60,right=w-60,top=30,bottom=h-30;
-      ctx.save();
+      const w=plot.width, h=plot.height;
+      const left=60, right=w-60, top=30, bottom=h-30;
+      const zeroY = (top+bottom)/2;
+      // draw zero line
+      ctx.save(); ctx.strokeStyle=getComputedStyle(document.documentElement).getPropertyValue('--ring'); ctx.beginPath(); ctx.moveTo(left, zeroY); ctx.lineTo(right, zeroY); ctx.stroke(); ctx.restore();
+      // deflection curve
       ctx.beginPath();
-      let first=true;
-      for(let i=0;i<=200;i++){
-        const l=state.L*i/200;
-        const d=deflectionAt(l);
-        const x=lerp(left,right,l/state.L);
-        const y=(h-60)/2 - d.mag*d.sign*(h-60)/2 + 30;
-        if(first){ ctx.moveTo(x,y); first=false; } else ctx.lineTo(x,y);
+      for (let i=0;i<=400;i++){
+        const l = state.L * i / 400;
+        const d = deflectionAt(l);
+        const x = lerp(left, right, l/state.L);
+        const y = lerp(bottom, top, (d.mag * (d.sign>=0?0.5: -0.5) + 0.5));
+        if (i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
       }
-      ctx.strokeStyle=getComputedStyle(document.documentElement).getPropertyValue('--accent');
-      ctx.lineWidth=2; ctx.stroke();
-      ctx.restore();
-
-      const mark=(l,color)=>{
-        if(l==null)return;
-        const x=lerp(left,right,l/state.L);
-        ctx.save();ctx.strokeStyle=color;ctx.setLineDash([6,4]);
-        ctx.beginPath();ctx.moveTo(x,top);ctx.lineTo(x,bottom);
-        ctx.stroke();ctx.restore();
+      ctx.strokeStyle = getComputedStyle(document.documentElement).getPropertyValue('--ink');
+      ctx.lineWidth = 2; ctx.stroke();
+      // markers
+      const mark = (l, color)=>{
+        if (l==null) return;
+        const x = lerp(left, right, l/state.L);
+        ctx.save(); ctx.strokeStyle=color; ctx.setLineDash([6,4]); ctx.beginPath(); ctx.moveTo(x, top); ctx.lineTo(x, bottom); ctx.stroke(); ctx.restore();
       };
-      mark(state.l1,'#3b82f6'); // blue for l1
-      mark(state.l2,'#ef4444'); // red for l2
+      mark(state.pos, '#22c55e');
+      mark(state.l1, '#64748b');
+      mark(state.l2, '#64748b');
+    }
+    function snapshotPlot(){
+      const url = plot.toDataURL('image/png');
+      const a = document.createElement('a'); a.href=url; a.download='carey_foster_plot.png'; a.click();
     }
 
-    let readingCount=0;
-    function logReading(){
-      let l=state.pos*state.L;
-      if(state.l1===null){ state.l1=l; }
-      else if(state.l2===null){ state.l2=l; }
-      let tbody=document.querySelector("#logTable tbody");
-      let row=document.createElement("tr");
-      readingCount++;
-      let dr="";
-      if(state.l1!==null && state.l2!==null){
-        dr=((state.l1-state.l2)*state.rw).toFixed(4);
-      }
-      row.innerHTML=`<td>${readingCount}</td><td>${state.l1?state.l1.toFixed(2):""}</td><td>${state.l2?state.l2.toFixed(2):""}</td><td>${dr}</td>`;
-      tbody.appendChild(row);
-      scanAndPlot();
+    // ---------- Logging & Export ----------
+    function addLog(){
+      const delta = (state.l1!=null && state.l2!=null) ? state.sigma * (state.l2 - state.l1) : '';
+      const row = { P:state.P, Q:state.Q, X:state.X, Y:state.Y, L:state.L, sigma:state.sigma, l:state.pos, l1:state.l1, l2:state.l2, dR:delta };
+      state.log.push(row);
+      renderLogTable();
     }
-    function resetExp(){
-      state.l1=null; state.l2=null; readingCount=0;
-      document.querySelector("#logTable tbody").innerHTML="";
-      clearPlot(); drawGalvo();
+    function renderLogTable(){
+      const tbody = document.querySelector('#logTable tbody');
+      tbody.innerHTML = '';
+      state.log.forEach((r, i)=>{
+        const tr = document.createElement('tr');
+        const cells = [i+1, fmt(r.P,3), fmt(r.Q,3), fmt(r.X,3), fmt(r.Y,3), fmt(r.L,2), fmt(r.sigma,5), fmt(r.l,4), fmt(r.l1,4), fmt(r.l2,4), (r.dR===''?'—':fmt(r.dR,6))];
+        cells.forEach((c, j)=>{ const td=document.createElement('td'); td.textContent=c; tr.appendChild(td); });
+        tbody.appendChild(tr);
+      });
     }
     function exportCSV(){
-      let rows=[["#","l1","l2","ΔR"]];
-      document.querySelectorAll("#logTable tbody tr").forEach(tr=>{
-        let cols=[...tr.children].map(td=>td.innerText);
-        rows.push(cols);
+      const header = ['Trial','P(Ω)','Q(Ω)','X(Ω)','Y(Ω)','L(cm)','sigma(Ω/cm)','l(cm)','l1(cm)','l2(cm)','X-Y(Ω)'];
+      const rows = [header.join(',')];
+      state.log.forEach((r,i)=>{
+        rows.push([i+1, r.P, r.Q, r.X, r.Y, r.L, r.sigma, r.l, r.l1, r.l2, r.dR].join(','));
       });
-      let csv=rows.map(r=>r.join(",")).join("\\n");
-      let blob=new Blob([csv],{type:"text/csv"});
-      let a=document.createElement("a");
-      a.href=URL.createObjectURL(blob);
-      a.download="carey_foster.csv";a.click();
+      // also include current state row even if not logged
+      if (state.log.length===0){
+        const delta = (state.l1!=null && state.l2!=null) ? state.sigma * (state.l2 - state.l1) : '';
+        rows.push([1, state.P, state.Q, state.X, state.Y, state.L, state.sigma, state.pos, state.l1, state.l2, delta].join(','));
+      }
+      const blob = new Blob([rows.join('\n')], {type:'text/csv;charset=utf-8;'});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a'); a.href=url; a.download='carey_foster_readings.csv'; a.click(); URL.revokeObjectURL(url);
     }
 
-    const themeToggle=document.getElementById("themeToggle");
-    themeToggle.addEventListener("change",()=>{
-      document.documentElement.setAttribute("data-theme",themeToggle.checked?"dark":"light");
+    // ---------- Events ----------
+    function syncFromInputs(){
+      state.P = parseFloat(inputs.P.value);
+      state.Q = parseFloat(inputs.Q.value);
+      state.X = parseFloat(inputs.X.value);
+      state.Y = parseFloat(inputs.Y.value);
+      state.L = Math.max(1, parseFloat(inputs.L.value));
+      state.sigma = parseFloat(inputs.sigma.value);
+      state.noise = parseFloat(inputs.noise.value);
+      state.cuL = inputs.cuL.checked;
+      state.cuR = inputs.cuR.checked;
+      state.swap = inputs.swap.checked;
+      state.pos = clamp(state.pos, 0, state.L);
+      layoutTicks(); renderWire(); renderPanels(); renderGalvo(); scanAndPlot();
+    }
+
+    Object.values(inputs).forEach(inp => inp.addEventListener('input', syncFromInputs));
+
+    // Jockey drag & keyboard
+    function pointerHandler(evt){
+      const pt = wireSVG.createSVGPoint();
+      pt.x = evt.clientX; pt.y = evt.clientY;
+      const ctm = wireSVG.getScreenCTM().inverse();
+      const sp = pt.matrixTransform(ctm);
+      const x = clamp(sp.x, x0, x1);
+      state.pos = lFromX(x);
+      renderWire(); renderPanels(); renderGalvo(); scanAndPlot();
+    }
+
+    jockey.addEventListener('mousedown', ()=>{
+      const move = (e)=> pointerHandler(e);
+      const up = ()=>{ window.removeEventListener('mousemove', move); window.removeEventListener('mouseup', up); };
+      window.addEventListener('mousemove', move);
+      window.addEventListener('mouseup', up);
     });
+    wireSVG.addEventListener('mousemove', (e)=>{ if (e.buttons===1) pointerHandler(e); });
+    jockey.addEventListener('keydown', (e)=>{
+      const step = (state.L/100); // 1% per arrow
+      if (e.key==='ArrowLeft'){ state.pos = clamp(state.pos - step, 0, state.L); e.preventDefault(); }
+      if (e.key==='ArrowRight'){ state.pos = clamp(state.pos + step, 0, state.L); e.preventDefault(); }
+      renderWire(); renderPanels(); renderGalvo(); scanAndPlot();
+    });
+
+    // Buttons
+    el('autoBtn').addEventListener('click', ()=>{ autoBalance(); scanAndPlot(); });
+    el('l1Btn').addEventListener('click', ()=>{ state.swap=false; inputs.swap.checked=false; const r=autoBalance(); if (r!=null){ state.l1=r; labels.L1.textContent = fmt(state.l1,4); renderPanels(); scanAndPlot(); } });
+    el('l2Btn').addEventListener('click', ()=>{ state.swap=true; inputs.swap.checked=true; const r=autoBalance(); if (r!=null){ state.l2=r; labels.L2.textContent = fmt(state.l2,4); renderPanels(); scanAndPlot(); } });
+    el('logBtn').addEventListener('click', addLog);
+    el('exportBtn').addEventListener('click', exportCSV);
+    el('scanBtn').addEventListener('click', scanAndPlot);
+    el('snapBtn').addEventListener('click', snapshotPlot);
+    el('resetBtn').addEventListener('click', ()=>{
+      Object.assign(state, {P:100,Q:100,X:5.000,Y:5.200,L:100,sigma:0.0200,pos:50,swap:false,cuL:false,cuR:false,noise:0,l1:null,l2:null});
+      inputs.P.value=100; inputs.Q.value=100; inputs.X.value=5.000; inputs.Y.value=5.200; inputs.L.value=100; inputs.sigma.value=0.0200; inputs.noise.value=0; inputs.cuL.checked=false; inputs.cuR.checked=false; inputs.swap.checked=false;
+      labels.L1.textContent='—'; labels.L2.textContent='—';
+      state.log=[]; renderLogTable();
+      syncFromInputs();
+    });
+
+    // Theme
+    function applyTheme(){
+      document.documentElement.setAttribute('data-theme', state.theme);
+      themeToggle.checked = (state.theme==='dark');
+      scanAndPlot();
+    }
+    themeToggle.addEventListener('change', ()=>{
+      state.theme = themeToggle.checked ? 'dark' : 'light';
+      localStorage.setItem('cf-theme', state.theme);
+      applyTheme();
+    });
+
+    // Init
+    (function init(){
+      document.getElementById('year').textContent = new Date().getFullYear();
+      applyTheme();
+      layoutTicks(); renderPanels(); renderWire(); renderGalvo(); scanAndPlot();
+    })();
   </script>
 </body>
 </html>
+
